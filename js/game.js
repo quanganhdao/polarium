@@ -30,7 +30,7 @@
     if (PORTRAIT) {
       // chiều cao ảo co giãn theo tỉ lệ máy để lấp kín màn hình dọc
       nw = 180; nh = Math.max(300, Math.min(400, Math.round(180 * availH / availW)));
-      LAY = { grid: { x: 4, y: 50, w: 172, h: nh - 94 - 50 }, bottom: nh - 92 };
+      LAY = { grid: { x: 4, y: 32, w: 172, h: nh - 86 }, bottom: nh - 50 };
     } else {
       nw = 240; nh = 160;
       LAY = { grid: { x: 84, y: 2, w: 156, h: 156 } };
@@ -384,25 +384,23 @@
     }
   }
 
+  // Chữ ngắn, chỉ hiện khi cần
   function phaseMessage() {
-    const touch = PORTRAIT;
     switch (P.phase) {
-      case 'idle': return [P.L.hint, C.dim];
-      case 'draw': return [touch ? 'Nhấc tay lên để lật các ô!' : 'Thả chuột hoặc nhấn Z để lật!', C.text];
-      case 'demo': return ['Đang xem lời giải...', C.accent];
-      case 'flip': return ['Đang lật ô...', C.text];
-      case 'clear': return ['Tuyệt vời! Hàng nào cũng chỉ còn 1 màu', C.good];
-      case 'fail': return ['TRƯỢT! ' + P.msg, C.bad];
-      case 'win': return [P.demo ? 'Hãy tự giải lại nhé!' : 'Hoàn thành màn!', C.good];
+      case 'idle': return [P.L.hint || '', C.dim];
+      case 'draw': return [PORTRAIT ? 'Nhấc tay để lật' : 'Thả / Z để lật', C.text];
+      case 'demo': return ['Lời giải', C.accent];
+      case 'clear': return ['TUYỆT!', C.good];
+      case 'fail': return ['TRƯỢT!', C.bad];
     }
     return ['', C.dim];
   }
 
-  // Minh họa luật: 3 hàng mẫu (toàn đen ✓, toàn trắng ✓, lẫn màu ✗)
-  function drawRuleExamples(x, y, t) {
+  // Minh họa luật bằng hình: toàn đen ✓, toàn trắng ✓, lẫn màu ✗
+  function drawRuleExamples(x, y, t, gap = 42) {
     const ex = [[1, 1, 1, 1, true], [0, 0, 0, 0, true], [1, 0, 1, 1, false]];
     ex.forEach((e, k) => {
-      const ox = x + k * 42;
+      const ox = x + k * gap;
       for (let i = 0; i < 4; i++) drawTile(ox + i * t, y, t, e[i]);
       const ok = e[4];
       ctx.fillStyle = ok ? C.good : C.bad;
@@ -415,45 +413,34 @@
     if (PORTRAIT) return drawPanelPortrait();
     ctx.fillStyle = C.panel; ctx.fillRect(0, 0, 82, H);
     ctx.fillStyle = C.panelLine; ctx.fillRect(82, 0, 2, H);
-    text('POLARIUM', 41, 4, 16, C.accent, 'center');
-    ctx.fillStyle = C.panelLine; ctx.fillRect(6, 20, 70, 1);
-    text(`MÀN ${P.i + 1}/${LEVELS.length}`, 6, 24, 16, C.text);
-    let y = 38;
-    for (const l of wrap(P.L.name, 72, 14)) { text(l, 6, y, 14, C.dim); y += 11; }
-    y += 3;
-    text(`Lượt thử: ${P.tries}`, 6, y, 13, C.text); y += 11;
-    const b = save.best[P.i];
-    text(b ? `Tốt nhất: ${b}` : 'Tốt nhất: -', 6, y, 13, C.text); y += 15;
-    ctx.fillStyle = C.panelLine; ctx.fillRect(6, y - 3, 70, 1);
+    text(`${P.i + 1}/${LEVELS.length}`, 41, 6, 28, C.accent, 'center');
+    text(`Thử: ${P.tries}`, 41, 34, 14, C.dim, 'center');
     const [msg, color] = phaseMessage();
-    for (const l of wrap(msg, 72, 13).slice(0, 5)) { text(l, 6, y, 13, color); y += 10; }
-    text('Mỗi hàng 1 màu', 41, H - 24, 12, C.accent, 'center', false);
-    text('Z:vẽ X:hủy H:giải', 41, H - 13, 12, C.dim, 'center', false);
+    let y = 62;
+    for (const l of wrap(msg, 72, 15).slice(0, 3)) { text(l, 41, y, 15, color, 'center'); y += 12; }
+    // luật bằng hình, xếp dọc
+    [[1, 1, 1, 1, true], [0, 0, 0, 0, true], [1, 0, 1, 1, false]].forEach((e, k) => {
+      const ox = 22, oy = H - 38 + k * 11;
+      for (let i = 0; i < 4; i++) drawTile(ox + i * 8, oy, 8, e[i]);
+      ctx.fillStyle = e[4] ? C.good : C.bad;
+      ctx.beginPath(); ctx.arc(ox + 38, oy + 3.5, 3.5, 0, Math.PI * 2); ctx.fill();
+    });
   }
 
   function drawPanelPortrait() {
-    // thanh trên
-    ctx.fillStyle = C.panel; ctx.fillRect(0, 0, W, 44);
-    ctx.fillStyle = C.panelLine; ctx.fillRect(0, 44, W, 2);
-    text(`MÀN ${P.i + 1}/${LEVELS.length}`, 8, 4, 20, C.accent);
-    text(P.L.name, 8, 24, 15, C.text);
-    const b = save.best[P.i];
-    text(`Lượt thử: ${P.tries}`, W - 8, 6, 14, C.text, 'right');
-    text(b ? `Tốt nhất: ${b}` : 'Tốt nhất: -', W - 8, 24, 14, C.dim, 'right');
+    // thanh trên: số màn + lượt thử
+    ctx.fillStyle = C.panel; ctx.fillRect(0, 0, W, 28);
+    ctx.fillStyle = C.panelLine; ctx.fillRect(0, 28, W, 2);
+    text(`${P.i + 1}/${LEVELS.length}`, 8, 3, 24, C.accent);
+    text(`Thử: ${P.tries}`, W - 8, 7, 16, C.dim, 'right');
 
-    // khung dưới: thông báo + nhắc luật
+    // khung dưới: 1 dòng trạng thái + luật bằng hình
     const y0 = LAY.bottom;
     ctx.fillStyle = C.panel; ctx.fillRect(0, y0, W, H - y0);
     ctx.fillStyle = C.panelLine; ctx.fillRect(0, y0, W, 2);
     const [msg, color] = phaseMessage();
-    let y = y0 + 6;
-    for (const l of wrap(msg, W - 16, 15).slice(0, 3)) { text(l, W / 2, y, 15, color, 'center'); y += 12; }
-
-    const ry = H - 42;
-    ctx.fillStyle = C.panelLine; ctx.fillRect(8, ry - 4, W - 16, 1);
-    text('MỤC TIÊU: MỖI HÀNG NGANG', W / 2, ry, 13, C.accent, 'center', false);
-    text('phải cùng 1 màu sau khi lật', W / 2, ry + 10, 13, C.dim, 'center', false);
-    drawRuleExamples(W / 2 - 62, ry + 24, 7);
+    if (msg) text(msg, W / 2, y0 + 6, 17, color, 'center');
+    drawRuleExamples(W / 2 - 62, H - 16, 7);
   }
 
   function drawWinOverlay() {
@@ -467,9 +454,8 @@
     const bounce = Math.sin(Math.min(1, P.timer * 3) * Math.PI) * -4;
     text(P.demo ? 'LỜI GIẢI' : 'HOÀN THÀNH!', cx, cy - 22 + bounce, 24, C.accent, 'center');
     const last = P.i + 1 >= LEVELS.length;
-    const how = PORTRAIT ? 'Chạm' : 'Z / chạm';
     if (Math.floor(state.t * 2.5) % 2 === 0)
-      text(`${how}: ${last ? 'kết thúc' : 'màn tiếp'}`, cx, cy + 6, 14, C.text, 'center');
+      text(last ? 'Chạm để kết thúc' : 'Chạm để tiếp', cx, cy + 6, 14, C.text, 'center');
     ctx.globalAlpha = 1;
   }
 
