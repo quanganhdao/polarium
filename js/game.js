@@ -413,10 +413,9 @@
     if (PORTRAIT) return drawPanelPortrait();
     ctx.fillStyle = C.panel; ctx.fillRect(0, 0, 82, H);
     ctx.fillStyle = C.panelLine; ctx.fillRect(82, 0, 2, H);
-    text(`${P.i + 1}/${LEVELS.length}`, 41, 6, 28, C.accent, 'center');
-    text(`Thử: ${P.tries}`, 41, 34, 14, C.dim, 'center');
+    text(`Level ${P.i + 1}`, 41, 8, 22, C.accent, 'center');
     const [msg, color] = phaseMessage();
-    let y = 62;
+    let y = 40;
     for (const l of wrap(msg, 72, 15).slice(0, 3)) { text(l, 41, y, 15, color, 'center'); y += 12; }
     // luật bằng hình, xếp dọc
     [[1, 1, 1, 1, true], [0, 0, 0, 0, true], [1, 0, 1, 1, false]].forEach((e, k) => {
@@ -428,11 +427,10 @@
   }
 
   function drawPanelPortrait() {
-    // thanh trên: số màn + lượt thử
+    // thanh trên: chỉ ghi Level
     ctx.fillStyle = C.panel; ctx.fillRect(0, 0, W, 28);
     ctx.fillStyle = C.panelLine; ctx.fillRect(0, 28, W, 2);
-    text(`${P.i + 1}/${LEVELS.length}`, 8, 3, 24, C.accent);
-    text(`Thử: ${P.tries}`, W - 8, 7, 16, C.dim, 'right');
+    text(`Level ${P.i + 1}`, W / 2, 3, 24, C.accent, 'center');
 
     // khung dưới: 1 dòng trạng thái + luật bằng hình
     const y0 = LAY.bottom;
