@@ -85,7 +85,7 @@
   function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} }
 
   // ---- Trạng thái ----
-  const state = { screen: 'title', t: 0, sel: 0, endT: 0 };
+  const state = { screen: 'title', t: 0, sel: 0, endT: 0, keys: false }; // keys: đang chơi bằng phím
   let P = null; // trạng thái màn đang chơi
 
   const FLIP_STEP = 0.055, FLIP_ANIM = 0.18;
@@ -384,8 +384,8 @@
       }
     }
 
-    // con trỏ bàn phím
-    if (P.phase === 'idle' && Math.floor(state.t * 3) % 2 === 0) {
+    // con trỏ bàn phím: chỉ hiện khi đang chơi bằng phím mũi tên
+    if (state.keys && P.phase === 'idle') {
       const sx = gx + (P.cursor.x + 1) * cs, sy = gy + (P.cursor.y + 1) * cs;
       ctx.strokeStyle = C.accent; ctx.lineWidth = 1.5;
       ctx.strokeRect(sx + 0.5, sy + 0.5, cs - 2, cs - 2);
@@ -584,6 +584,7 @@
   window.addEventListener('keydown', e => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (DIRS[k] || k === ' ' || k === 'Backspace') e.preventDefault();
+    if (DIRS[k]) state.keys = true;
     if (helpOpen()) { if (isConfirm(k) || isCancel(k)) { e.preventDefault(); closeHelp(); } return; }
     if (k === 'm') { toggleSound(); return; }
     if (k === '?' || k === '/') { openHelp(); return; }
@@ -624,6 +625,7 @@
   }
 
   cv.addEventListener('pointerdown', e => {
+    state.keys = false;
     e.preventDefault();
     const p = toLogical(e);
     if (state.screen === 'title') { state.screen = 'select'; sfx.select(); return; }
