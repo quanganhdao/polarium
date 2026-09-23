@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0c0d1c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Polarium JS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0d1c;
+    --shell: #3b2f7a;
+    --shell-hi: #4d3f96;
+    --bezel: #15162b;
+    --text: #e8e6f5;
+    --dim: #9a98c0;
+    --btn: #22244a;
+    --btn-hi: #33366a;
+    --accent: #ffd23f;
+    --good: #5fe3a1;
+    --bad: #ff6b7f;
+    --tile-black: #1c1c28;
+    --tile-white: #f4f1e6;
+    --frame: #56629a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(ellipse at top, #1d1f44 0%, var(--bg) 70%);
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'VT323', ui-monospace, monospace;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; min-height: 100dvh;
+    padding: 16px; gap: 14px; overflow: hidden;
+    user-select: none; -webkit-user-select: none;
+    overscroll-behavior: none;
+  }
+  .shell {
+    background: linear-gradient(180deg, var(--shell-hi), var(--shell));
+    border-radius: 22px 22px 40px 40px;
+    padding: 18px 22px 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.15);
+    max-width: 100%;
+  }
+  .bezel {
+    background: var(--bezel);
+    border-radius: 10px;
+    padding: 12px;
+    box-shadow: inset 0 0 0 2px #0006;
+  }
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    touch-action: none;
+    border-radius: 2px;
+    cursor: crosshair;
+  }
+  .brand {
+    text-align: center; margin-top: 8px;
+    color: #cfc8ff; letter-spacing: 3px; font-size: 18px; opacity: .8;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  button {
+    font: inherit; font-size: 20px;
+    background: var(--btn); color: var(--text);
+    border: 2px solid #3d4080; border-radius: 10px;
+    padding: 6px 14px; cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:hover { background: var(--btn-hi); }
+  button:active { transform: translateY(1px); background: var(--btn-hi); }
+  .controls button .ico { margin-right: 6px; }
+  .help { color: var(--dim); font-size: 17px; text-align: center; line-height: 1.25; max-width: 720px; }
+  .help b { color: var(--accent); font-weight: normal; }
+
+  /* ---------- Điện thoại dọc ---------- */
+  body.portrait {
+    justify-content: flex-start;
+    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+    gap: 8px;
+  }
+  body.portrait .shell { background: none; box-shadow: none; padding: 0; border-radius: 0; }
+  body.portrait .bezel { padding: 0; background: none; box-shadow: none; }
+  body.portrait canvas { border-radius: 8px; box-shadow: 0 0 0 2px #2e3266, 0 8px 30px #0008; }
+  body.portrait .brand, body.portrait .help { display: none; }
+  body.portrait .controls {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 6px; width: 100%; max-width: 480px;
+  }
+  body.portrait .controls button {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 6px 2px; min-height: 58px; font-size: 16px; line-height: 1.05; border-radius: 12px;
+  }
+  body.portrait .controls button .ico { margin: 0 0 3px; font-size: 22px; }
+  body.portrait .controls .key { display: none; }
+
+  /* ---------- Cửa sổ Cách chơi ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 10;
+    background: #05061099;
+    display: flex; overflow-y: auto; overscroll-behavior: contain;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+  }
+  .modal[hidden] { display: none; }
+  .card {
+    background: #151733; border: 2px solid #3d4080; border-radius: 16px;
+    width: 100%; max-width: 340px; margin: auto;
+    padding: 14px 16px 16px; font-size: 18px; line-height: 1.22;
+    box-shadow: 0 20px 60px #000a;
+  }
+  .card h2 { margin: 0 0 8px; color: var(--accent); font-weight: normal; font-size: 30px; text-align: center; }
+  .card ol { margin: 0; padding-left: 22px; }
+  .card li { margin: 4px 0; font-size: 21px; }
+  .card b { color: var(--accent); font-weight: normal; }
+  .goal {
+    margin: 10px 0; padding: 10px 12px; border-radius: 12px;
+    background: #211f10; border: 2px solid var(--accent);
+  }
+  .goal .big { font-size: 22px; color: var(--accent); }
+  .rows { display: grid; gap: 6px; margin-top: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; font-size: 18px; }
+  .tiles { display: flex; gap: 2px; }
+  .t { width: 18px; height: 18px; border-radius: 2px; }
+  .t.b { background: var(--tile-black); box-shadow: inset 1px 1px 0 #3b3b52; outline: 1px solid #000; }
+  .t.w { background: var(--tile-white); box-shadow: inset -1px -1px 0 #bdb8a6; }
+  .t.f { background: var(--frame); }
+  .t.p { position: relative; }
+  .t.p::after { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: #ff3b5c; }
+  .ok { color: var(--good); } .no { color: var(--bad); }
+  .demo { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 8px 0 4px; }
+  .demo .grid { display: grid; gap: 2px; }
+  .demo .arrow { font-size: 26px; color: var(--accent); }
+  .demo .marks { display: grid; gap: 2px; font-size: 18px; }
+  .demo .marks span { height: 18px; line-height: 18px; }
+  .caption { text-align: center; color: var(--dim); font-size: 16px; }
+  #help-close { display: block; width: 100%; margin-top: 12px; font-size: 22px; padding: 10px; background: #3b2f7a; border-color: var(--accent); }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="bezel"><canvas id="screen"></canvas></div>
+    <div class="brand">POLARIUM ADVANCE · JS</div>
+  </div>
+  <div class="controls below">
+    <button id="btn-reset"><span class="ico">↺</span><span class="lbl">Làm lại</span><span class="key">&nbsp;(R)</span></button>
+    <button id="btn-hint"><span class="ico">💡</span><span class="lbl">Lời giải</span><span class="key">&nbsp;(H)</span></button>
+    <button id="btn-help"><span class="ico">❓</span><span class="lbl">Cách chơi</span><span class="key">&nbsp;(?)</span></button>
+    <button id="btn-menu"><span class="ico">☰</span><span class="lbl">Chọn màn</span><span class="key">&nbsp;(Esc)</span></button>
+    <button id="btn-sound"><span class="ico">🔊</span><span class="lbl">Âm thanh</span><span class="key">&nbsp;(M)</span></button>
+  </div>
+  <div class="help below">
+    Mục tiêu: sau khi lật, <b>trong mỗi hàng ngang, mọi ô phải cùng một màu</b> (cả hàng toàn đen hoặc toàn trắng).<br>
+    Chuột: kéo để vẽ, thả để lật · Bàn phím: <b>mũi tên</b> di chuyển, <b>Z/Enter</b> bắt đầu & kết thúc nét, <b>X</b> hủy nét
+  </div>
+
+  <div class="modal" id="help-modal" hidden>
+    <div class="card" role="dialog" aria-labelledby="help-title">
+      <h2 id="help-title">Cách chơi</h2>
+      <ol>
+        <li><b>Kéo một nét</b> qua các ô</li>
+        <li>Nhấc tay lên: ô trên nét <b>lật màu</b></li>
+        <li>Thắng khi <b>mỗi hàng chỉ 1 màu</b></li>
+      </ol>
+
+      <div class="demo" aria-label="Ví dụ trước và sau khi lật">
+        <div class="grid" style="grid-template-columns: repeat(4, 18px)">
+          <i class="t w"></i><i class="t b p"></i><i class="t b p"></i><i class="t w"></i>
+          <i class="t b"></i><i class="t b"></i><i class="t w p"></i><i class="t b"></i>
+          <i class="t w"></i><i class="t w"></i><i class="t w"></i><i class="t w"></i>
+        </div>
+        <div class="arrow">→</div>
+        <div class="grid" style="grid-template-columns: repeat(4, 18px)">
+          <i class="t w"></i><i class="t w"></i><i class="t w"></i><i class="t w"></i>
+          <i class="t b"></i><i class="t b"></i><i class="t b"></i><i class="t b"></i>
+          <i class="t w"></i><i class="t w"></i><i class="t w"></i><i class="t w"></i>
+        </div>
+        <div class="marks"><span class="ok">✓</span><span class="ok">✓</span><span class="ok">✓</span></div>
+      </div>
+      <button id="help-close">Chơi thôi!</button>
+    </div>
+  </div>
+
+  <script src="js/levels.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
