@@ -14,7 +14,7 @@ Bản làm lại trò giải đố **Polarium Advance** (GBA) bằng JavaScript 
 
 Mở `index.html` bằng trình duyệt. Chơi tốt trên điện thoại (màn dọc) lẫn máy tính.
 
-Bàn phím: mũi tên di chuyển · `Z`/`Enter` bắt đầu & kết thúc nét · `X` hủy · `R` làm lại · `H` lời giải · `M` âm thanh.
+Bàn phím: mũi tên di chuyển · `Z`/`Enter` bắt đầu & kết thúc nét · `X` hủy · `R` làm lại · `H` bật/tắt gợi ý đường đi · `M` âm thanh.
 
 ## Thêm màn
 

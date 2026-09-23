@@ -94,7 +94,7 @@
   function loadLevel(i) {
     const L = LEVELS[i];
     const h = L.rows.length, w = L.rows[0].length;
-    P = { i, L, w, h, cursor: { x: 0, y: 0 }, tries: 0, demo: false, mouseDraw: false };
+    P = { i, L, w, h, cursor: { x: 0, y: 0 }, tries: 0, showHint: false, mouseDraw: false };
     layoutBoard();
     resetBoard();
     state.screen = 'play';
@@ -113,7 +113,7 @@
     P.flipAt = P.board.map(r => r.map(() => -1));
     P.path = []; P.visited = new Set();
     P.phase = 'idle'; P.timer = 0; P.flipIdx = 0; P.rowsHit = [];
-    P.mouseDraw = false; P.demo = false; P.msg = '';
+    P.mouseDraw = false; P.msg = '';
   }
 
   const inExt = (x, y) => x >= -1 && x <= P.w && y >= -1 && y <= P.h;
@@ -173,7 +173,7 @@
   function commit() {
     P.mouseDraw = false;
     if (!P.path.some(p => isIn(p.x, p.y))) { cancelPath(); return; }
-    if (!P.demo) P.tries++;
+    P.tries++;
     P.phase = 'flip'; P.flipIdx = 0; P.timer = 0;
   }
 
@@ -194,19 +194,17 @@
 
   function winLevel() {
     P.phase = 'win'; P.timer = 0; sfx.win();
-    if (!P.demo) {
-      if (!save.cleared.includes(P.i)) save.cleared.push(P.i);
-      const b = save.best[P.i];
-      if (!b || P.tries < b) save.best[P.i] = P.tries;
-      persist();
-    }
+    if (!save.cleared.includes(P.i)) save.cleared.push(P.i);
+    const b = save.best[P.i];
+    if (!b || P.tries < b) save.best[P.i] = P.tries;
+    persist();
   }
 
-  function startDemo() {
-    if (!P || !['idle', 'fail', 'draw'].includes(P.phase)) return;
-    const tries = P.tries;
-    resetBoard(); P.tries = tries;
-    P.demo = true; P.phase = 'demo'; P.timer = 0; P.demoIdx = 0;
+  // Lời giải: bật/tắt đường gợi ý mờ trên bảng, người chơi tự vẽ theo.
+  function toggleHint() {
+    if (!P || P.phase === 'win' || P.phase === 'clear') return;
+    P.showHint = !P.showHint;
+    P.showHint ? sfx.select() : sfx.cancel();
   }
 
   function nextLevel() {
@@ -223,16 +221,6 @@
     if (state.screen !== 'play') return;
     P.timer += dt;
     switch (P.phase) {
-      case 'demo': {
-        const sol = P.L.solution;
-        while (P.timer >= 0.11 && P.demoIdx < sol.length) {
-          P.timer -= 0.11;
-          const [x, y] = sol[P.demoIdx++];
-          if (P.path.length === 0) beginPath(x, y); else tryStep(x, y);
-        }
-        if (P.demoIdx >= sol.length && P.timer >= 0.35) commit();
-        break;
-      }
       case 'flip':
         while (P.timer >= FLIP_STEP && P.flipIdx < P.path.length) {
           P.timer -= FLIP_STEP;
@@ -346,8 +334,28 @@
       }
     }
 
+    // đường gợi ý (Lời giải): nét vàng mờ, chấm tròn ở điểm bắt đầu
+    if (P.showHint && ['idle', 'draw', 'fail'].includes(P.phase)) {
+      const pts = P.L.solution.map(([x, y]) => [gx + (x + 1.5) * cs, gy + (y + 1.5) * cs]);
+      const pulse = 0.45 + 0.2 * Math.sin(state.t * 4);
+      ctx.save();
+      ctx.globalAlpha = pulse;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = C.accent; ctx.lineWidth = Math.max(2, cs * 0.22);
+      ctx.setLineDash([cs * 0.3, cs * 0.25]);
+      ctx.lineDashOffset = -state.t * cs; // chạy theo hướng vẽ
+      ctx.beginPath(); ctx.moveTo(...pts[0]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(...pts[i]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = C.accent; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(...pts[0], cs * (0.32 + 0.06 * Math.sin(state.t * 6)), 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+
     // nét vẽ
-    if (P.path.length && ['draw', 'demo', 'flip'].includes(P.phase)) {
+    if (P.path.length && ['draw', 'flip'].includes(P.phase)) {
       const pts = P.path.map(p => [gx + (p.x + 1.5) * cs, gy + (p.y + 1.5) * cs]);
       const lw = Math.max(3, cs * 0.34);
       ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -389,7 +397,6 @@
     switch (P.phase) {
       case 'idle': return [P.L.hint || '', C.dim];
       case 'draw': return [PORTRAIT ? 'Nhấc tay để lật' : 'Thả / Z để lật', C.text];
-      case 'demo': return ['Lời giải', C.accent];
       case 'clear': return ['TUYỆT!', C.good];
       case 'fail': return ['TRƯỢT!', C.bad];
     }
@@ -450,7 +457,7 @@
     ctx.fillStyle = '#000a'; ctx.fillRect(g.x, cy - 28, g.w, 56);
     ctx.fillStyle = C.accent; ctx.fillRect(g.x, cy - 28, g.w, 1); ctx.fillRect(g.x, cy + 27, g.w, 1);
     const bounce = Math.sin(Math.min(1, P.timer * 3) * Math.PI) * -4;
-    text(P.demo ? 'LỜI GIẢI' : 'HOÀN THÀNH!', cx, cy - 22 + bounce, 24, C.accent, 'center');
+    text('HOÀN THÀNH!', cx, cy - 22 + bounce, 24, C.accent, 'center');
     const last = P.i + 1 >= LEVELS.length;
     if (Math.floor(state.t * 2.5) % 2 === 0)
       text(last ? 'Chạm để kết thúc' : 'Chạm để tiếp', cx, cy + 6, 14, C.text, 'center');
@@ -593,7 +600,7 @@
     // play
     if (P.phase === 'win') { if (isConfirm(k)) nextLevel(); else if (isCancel(k)) toSelect(); return; }
     if (k === 'r') { const t = P.tries; resetBoard(); P.tries = t; sfx.cancel(); return; }
-    if (k === 'h') { startDemo(); return; }
+    if (k === 'h') { toggleHint(); return; }
     if (P.phase === 'idle') {
       if (DIRS[k]) {
         const nx = P.cursor.x + DIRS[k][0], ny = P.cursor.y + DIRS[k][1];
@@ -664,7 +671,7 @@
   document.getElementById('btn-reset').onclick = () => {
     if (state.screen === 'play' && P.phase !== 'win') { const t = P.tries; resetBoard(); P.tries = t; sfx.cancel(); }
   };
-  document.getElementById('btn-hint').onclick = () => { if (state.screen === 'play') startDemo(); };
+  document.getElementById('btn-hint').onclick = () => { if (state.screen === 'play') toggleHint(); };
   document.getElementById('btn-menu').onclick = () => { toSelect(); sfx.cancel(); };
   // ---- Cửa sổ Cách chơi ----
   const helpEl = document.getElementById('help-modal');
